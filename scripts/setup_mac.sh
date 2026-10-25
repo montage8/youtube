@@ -1,14 +1,24 @@
 #!/usr/bin/env bash
 # ytaccess 맥 설치 도우미
 #
-# 실행 방법 (터미널에서):
-#   curl -fsSL https://raw.githubusercontent.com/montage8/youtube/arena/f8c0623d-youtube/scripts/setup_mac.sh | bash
-# 또는 저장소를 클론한 뒤:
+# 실행 방법 (터미널에서, sudo 없이):
+#   git clone https://github.com/montage8/youtube.git
+#   cd youtube
 #   bash scripts/setup_mac.sh
+#
+# 주의: sudo로 실행하지 마세요. Homebrew는 root 실행을 거부하며,
+#       root 소유 .venv가 생기면 이후 실행이 실패합니다.
 set -euo pipefail
 
 echo "=== ytaccess 맥 설치 도우미 ==="
 echo
+
+# 0. root 실행 방지
+if [ "$(id -u)" -eq 0 ]; then
+  echo "오류: sudo(root)로 실행하지 마세요. 'sudo'를 빼고 다시 실행해 주세요."
+  echo "      bash scripts/setup_mac.sh"
+  exit 1
+fi
 
 # 1. Homebrew 확인/설치
 if ! command -v brew >/dev/null 2>&1; then
@@ -17,9 +27,16 @@ if ! command -v brew >/dev/null 2>&1; then
 fi
 eval "$(/opt/homebrew/bin/brew shellenv 2>/dev/null || /usr/local/bin/brew shellenv 2>/dev/null || true)"
 
-# 2. 필수 도구 설치: ffmpeg (MP4 병합), deno (yt-dlp 유튜브 추출 권장)
+# 2. 필수 도구 설치: ffmpeg (MP4 병합), deno (yt-dlp 유튜브 추출)
 echo "ffmpeg, deno 설치를 확인합니다..."
-brew install ffmpeg deno >/dev/null 2>&1 || brew upgrade ffmpeg deno >/dev/null 2>&1 || true
+for formula in ffmpeg deno; do
+  if brew list --formula "$formula" >/dev/null 2>&1; then
+    echo "  - $formula: 이미 설치됨"
+  else
+    echo "  - $formula: 설치 중..."
+    brew install "$formula"
+  fi
+done
 
 # 3. Python 가상환경 (권장)
 if [ ! -d .venv ]; then
@@ -29,10 +46,11 @@ fi
 # shellcheck disable=SC1091
 source .venv/bin/activate
 
-# 4. Python 의존성 설치
+# 4. Python 의존성 + ytaccess 패키지 자체 설치
 echo "Python 라이브러리를 설치합니다..."
-pip install --upgrade pip >/dev/null 2>&1 || true
-pip install -r requirements.txt
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+python -m pip install -e .
 
 # 5. 설정 파일 초기 생성
 python - <<'PY'
