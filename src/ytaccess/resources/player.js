@@ -246,6 +246,12 @@
     else if (engine === 'native') { var p = native.play(); if (p && p.catch) p.catch(function () {}); }
   }
 
+  // 연속 반복: 처음으로 되돌린 뒤 다시 재생합니다.
+  function restart() {
+    seek(0);
+    play();
+  }
+
   function pause() {
     if (engine === 'ytplayer' && yt) yt.pause();
     else if (engine === 'native') native.pause();
@@ -284,6 +290,7 @@
     play: play,
     pause: pause,
     toggle: toggle,
+    restart: restart,
     stop: stop,
     state: function () { return JSON.stringify(snapshot()); },
     version: '1.0'
