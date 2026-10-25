@@ -100,9 +100,9 @@ def test_player_seek_percent_and_relative() -> None:
     view.state = view.state.__class__(current_time=100.0, duration=1000.0, volume=50.0)
     controller.handle_player_key("digit:3")
     assert ("seek_percent", 30.0) in view.player_calls
-    controller.handle_player_key("left")
+    controller.handle_player_key("seek_back")
     assert ("seek_relative", -5.0) in view.player_calls
-    controller.handle_player_key("right")
+    controller.handle_player_key("seek_forward")
     assert ("seek_relative", 5.0) in view.player_calls
 
 
@@ -110,9 +110,9 @@ def test_player_volume_and_time() -> None:
     controller, view = _make_app()
     controller.start()
     view.state = view.state.__class__(current_time=125.0, duration=500.0, volume=60.0)
-    controller.handle_player_key("up")
+    controller.handle_player_key("volume_up")
     assert ("change_volume", 10.0) in view.player_calls
-    controller.handle_player_key("down")
+    controller.handle_player_key("volume_down")
     assert ("change_volume", -10.0) in view.player_calls
     controller.handle_player_key("time")
     assert any("2분 5초" in a for a in view.announcements)
@@ -217,3 +217,37 @@ def test_auto_next_stops_at_last_row() -> None:
     controller.player_event("ended")
     assert len(view.player_opened) == 1
     assert "마지막 영상" in view.announcements[-1]
+
+
+def test_speed_steps_between_quarter_and_double() -> None:
+    controller, view = _make_app()
+    controller.start()
+    controller.play(0)
+    controller.handle_player_key("speed_up")
+    assert controller.playback_rate == 1.25
+    assert ("set_rate", 1.25) in view.player_calls
+    for _ in range(10):
+        controller.handle_player_key("speed_up")
+    assert controller.playback_rate == 2.0
+    assert view.announcements[-1].startswith("재생 속도가 가장 빠릅니다")
+    for _ in range(20):
+        controller.handle_player_key("speed_down")
+    assert controller.playback_rate == 0.25
+    assert view.announcements[-1].startswith("재생 속도가 가장 느립니다")
+
+
+def test_new_video_resets_speed_to_normal() -> None:
+    controller, view = _make_app()
+    controller.start()
+    controller.play(0)
+    controller.handle_player_key("speed_up")
+    controller.play(1)
+    assert controller.playback_rate == 1.0
+
+
+def test_speed_shown_in_player_status() -> None:
+    controller, view = _make_app()
+    controller.start()
+    controller.play(0)
+    controller.handle_player_key("speed_down")
+    assert "속도 0.75배" in view.player_status

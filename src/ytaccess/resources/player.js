@@ -234,6 +234,16 @@
 
   function changeVolume(delta) { setVolume(volume + (Number(delta) || 0)); }
 
+  // 재생 속도 (0.25 ~ 2배). 0배는 재생이 멈추므로 허용하지 않습니다.
+  function setRate(value) {
+    var r = Number(value);
+    if (!isFinite(r) || r <= 0) r = 1;
+    rate = Math.max(0.25, Math.min(2, r));
+    if (engine === 'ytplayer' && yt) yt.setPlaybackRate(rate);
+    if (engine === 'native') native.playbackRate = rate;
+    emitState();
+  }
+
   function muteToggle() {
     muted = !muted;
     if (engine === 'ytplayer' && yt) { if (muted) yt.mute(); else yt.unMute(); }
@@ -286,6 +296,7 @@
     seekRelative: seekRelative,
     setVolume: setVolume,
     changeVolume: changeVolume,
+    setRate: setRate,
     muteToggle: muteToggle,
     play: play,
     pause: pause,
@@ -298,7 +309,7 @@
 
   // 메시지 핸들러가 아직 등록되지 않았을 때를 대비한 주기적 상태 전송
   setInterval(emitState, 1000);
-  hintEl.textContent = '숫자 0~9 위치 이동 · ← → 5초 · ↑ ↓ 볼륨 · L 현재 위치 · Esc 닫기';
+  hintEl.textContent = "숫자 0~9 위치 이동 · ; ' 5초 뒤·앞 · U D 볼륨 · F S 속도 · L 현재 위치 · Esc 닫기";
   post('event', { name: 'ready' });
   emitState();
 })();

@@ -40,8 +40,8 @@ class Config:
 
     # 재생
     player_engine: str = "ytplayer"      # ytplayer(유튜브 iframe) | adfree(yt-dlp 직접 스트림)
-    seek_step: int = 5                   # 좌우 화살표 이동 초
-    volume_step: int = 10                # 위아래 화살표 볼륨 단계
+    seek_step: int = 5                   # ; ' 키로 이동하는 초
+    volume_step: int = 10                # U D 키 볼륨 단계
     start_volume: int = 100
 
     # 음성 안내

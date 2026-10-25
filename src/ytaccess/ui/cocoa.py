@@ -221,16 +221,22 @@ class _MenuActions(NSObject):
         self.view.controller.handle_player_key(f"digit:{percent // 10}")
 
     def playerBackMenuItem_(self, _sender: Any) -> None:
-        self.view.controller.handle_player_key("left")
+        self.view.controller.handle_player_key("seek_back")
 
     def playerForwardMenuItem_(self, _sender: Any) -> None:
-        self.view.controller.handle_player_key("right")
+        self.view.controller.handle_player_key("seek_forward")
 
     def playerVolumeUpMenuItem_(self, _sender: Any) -> None:
-        self.view.controller.handle_player_key("up")
+        self.view.controller.handle_player_key("volume_up")
 
     def playerVolumeDownMenuItem_(self, _sender: Any) -> None:
-        self.view.controller.handle_player_key("down")
+        self.view.controller.handle_player_key("volume_down")
+
+    def playerSpeedUpMenuItem_(self, _sender: Any) -> None:
+        self.view.controller.handle_player_key("speed_up")
+
+    def playerSpeedDownMenuItem_(self, _sender: Any) -> None:
+        self.view.controller.handle_player_key("speed_down")
 
     def playerToggleMenuItem_(self, _sender: Any) -> None:
         self.view.controller.handle_player_key("space")
@@ -314,10 +320,12 @@ def build_main_menu(actions: _MenuActions) -> None:
         seek_menu.addItem_(_item(label, "playerSeekMenuItem:", "", actions, tag=percent))
     seek_item.setSubmenu_(seek_menu)
     player_menu.addItem_(seek_item)
-    player_menu.addItem_(_item("5초 뒤로", "playerBackMenuItem:", "", actions))
-    player_menu.addItem_(_item("5초 앞으로", "playerForwardMenuItem:", "", actions))
-    player_menu.addItem_(_item("볼륨 올리기", "playerVolumeUpMenuItem:", "", actions))
-    player_menu.addItem_(_item("볼륨 내리기", "playerVolumeDownMenuItem:", "", actions))
+    player_menu.addItem_(_item("5초 뒤로 (;)", "playerBackMenuItem:", "", actions))
+    player_menu.addItem_(_item("5초 앞으로 (')", "playerForwardMenuItem:", "", actions))
+    player_menu.addItem_(_item("볼륨 올리기 (U)", "playerVolumeUpMenuItem:", "", actions))
+    player_menu.addItem_(_item("볼륨 내리기 (D)", "playerVolumeDownMenuItem:", "", actions))
+    player_menu.addItem_(_item("재생 속도 빠르게 (F)", "playerSpeedUpMenuItem:", "", actions))
+    player_menu.addItem_(_item("재생 속도 느리게 (S)", "playerSpeedDownMenuItem:", "", actions))
     player_item.setSubmenu_(player_menu)
     main.addItem_(player_item)
 
@@ -584,6 +592,10 @@ class CocoaView(View):
     def player_restart(self) -> None:
         if self.player:
             self.player.player_restart()
+
+    def player_set_rate(self, rate: float) -> None:
+        if self.player:
+            self.player.player_set_rate(rate)
 
     # ------------------------------------------------------------------ 대화상자
     def change_home_query(self) -> None:
