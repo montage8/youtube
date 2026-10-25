@@ -1,0 +1,6 @@
+# 공통
+yt-dlp>=2024.1.1
+
+# macOS 전용: 네이티브 Cocoa UI + WKWebView (보이스오버 접근성의 핵심)
+pyobjc-framework-Cocoa>=10.0; sys_platform == "darwin"
+pyobjc-framework-WebKit>=10.0; sys_platform == "darwin"

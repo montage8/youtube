@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ytaccess"
+version = "0.1.0"
+description = "보이스오버 사용자를 위한 광고 없는 macOS 유튜브 탐색·재생·다운로드 프로그램"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "montage8" }]
+keywords = ["youtube", "voiceover", "accessibility", "macos", "yt-dlp", "yt-player"]
+classifiers = [
+    "Environment :: MacOS X :: Cocoa",
+    "Intended Audience :: End Users/Desktop",
+    "Programming Language :: Python :: 3",
+    "Topic :: Multimedia :: Video",
+]
+dependencies = [
+    "yt-dlp>=2024.1.1",
+    "pyobjc-framework-Cocoa>=10.0; sys_platform == 'darwin'",
+    "pyobjc-framework-WebKit>=10.0; sys_platform == 'darwin'",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "build>=1.0"]
+app = ["py2app>=0.28; sys_platform == 'darwin'"]
+
+[project.scripts]
+ytaccess = "ytaccess.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/montage8/youtube"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+ytaccess = [
+    "resources/*.html",
+    "resources/*.js",
+    "resources/vendor/*.js",
+    "resources/vendor/LICENSE*",
+    "resources/vendor/README*",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
