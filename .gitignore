@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# macOS
+.DS_Store
+*.app/
+*.dSYM/
+
+# 로컬 설정/다운로드/로그 (개인 정보 및 대용량 파일)
+settings.json
+*.log
+downloads/
+sample_videos/
+
+# npm (yt-player 번들을 다시 만들 때만 사용)
+node_modules/
+package-lock.json
