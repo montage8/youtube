@@ -238,6 +238,12 @@ class _MenuActions(NSObject):
     def playerMuteMenuItem_(self, _sender: Any) -> None:
         self.view.controller.handle_player_key("mute")
 
+    def playerRepeatMenuItem_(self, _sender: Any) -> None:
+        self.view.controller.handle_command("cmd:t")
+
+    def playerAutoNextMenuItem_(self, _sender: Any) -> None:
+        self.view.controller.handle_command("cmd:n")
+
 
 class _AppDelegate(NSObject):
     def applicationShouldTerminateAfterLastWindowClosed_(self, _app: Any) -> bool:
@@ -299,6 +305,8 @@ def build_main_menu(actions: _MenuActions) -> None:
     player_menu.addItem_(_item("현재 위치 음성으로 듣기 (L)", "playerTimeMenuItem:", "", actions))
     player_menu.addItem_(_item("재생 / 일시정지", "playerToggleMenuItem:", "", actions))
     player_menu.addItem_(_item("음소거 켜기 / 끄기", "playerMuteMenuItem:", "", actions))
+    player_menu.addItem_(_item("연속 반복 켜기 / 끄기 (⌘T)", "playerRepeatMenuItem:", "t", actions))
+    player_menu.addItem_(_item("다음 영상 자동 재생 켜기 / 끄기 (⌘N)", "playerAutoNextMenuItem:", "n", actions))
     seek_item = _item("위치 이동", None, "", actions)
     seek_menu = AppKit.NSMenu.alloc().initWithTitle_("위치 이동")
     for percent in range(0, 100, 10):
@@ -572,6 +580,10 @@ class CocoaView(View):
     def player_mute(self) -> None:
         if self.player:
             self.player.player_mute()
+
+    def player_restart(self) -> None:
+        if self.player:
+            self.player.player_restart()
 
     # ------------------------------------------------------------------ 대화상자
     def change_home_query(self) -> None:

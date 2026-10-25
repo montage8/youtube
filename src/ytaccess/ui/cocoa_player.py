@@ -387,5 +387,8 @@ class CocoaPlayerWindow:
     def player_mute(self) -> None:
         self.eval_js("window.YTACCESS.muteToggle();")
 
+    def player_restart(self) -> None:
+        self.eval_js("window.YTACCESS.restart();")
+
     def player_close(self) -> None:
         self.close()

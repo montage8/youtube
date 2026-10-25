@@ -69,6 +69,8 @@ Command+,  홈 검색어 변경
 왼쪽/오른쪽 화살표  5초 뒤로 / 5초 앞으로
 위/아래 화살표  볼륨 올리기 / 내리기
 L  현재 재생 위치를 음성으로 읽어주기
+Command+T  연속 반복 켜기 / 끄기 (켜면 영상이 끝나도 같은 영상을 다시 재생)
+Command+N  다음 영상 자동 재생 켜기 / 끄기 (재생목록에서 재생한 경우, 끝나면 바로 아래 영상 재생)
 스페이스바  재생 / 일시정지
 M  음소거 켜기 / 끄기
 Esc  재생 종료 후 동영상 표로 돌아가기
@@ -150,6 +152,9 @@ class View:
         pass
 
     def player_mute(self) -> None:
+        pass
+
+    def player_restart(self) -> None:
         pass
 
 
@@ -245,3 +250,6 @@ class NullView(View):
 
     def player_mute(self) -> None:
         self.player_calls.append(("mute", None))
+
+    def player_restart(self) -> None:
+        self.player_calls.append(("restart", None))

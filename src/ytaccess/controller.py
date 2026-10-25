@@ -68,6 +68,11 @@ class AppController:
         self._generation = 0
         self._downloading: set[str] = set()
         self.player_state = PlayerState()
+        # 연속 반복(Command+T)과 자동 다음 영상(Command+N) 토글
+        self.repeat_one = False
+        self.auto_next = False
+        # 표(재생목록)에서 재생 중인 동영상 id. None이면 목록에서 재생한 것이 아님.
+        self._now_playing_id: str | None = None
 
     # ------------------------------------------------------------------ 유틸
     @property
@@ -276,6 +281,11 @@ class AppController:
         if video is None:
             self.announce("선택된 동영상이 없습니다.", "high")
             return
+        # 표(재생목록)에서 직접 고른 동영상이므로 자동 다음 재생의 기준이 됩니다.
+        self._now_playing_id = video.id
+        self._start_video(video)
+
+    def _start_video(self, video: Video) -> None:
         engine = self.config.player_engine
         self.player_state = PlayerState(title=video.title, engine=engine, playback="loading")
         self.announce(f"{video.title} 재생을 준비합니다.")
@@ -283,6 +293,32 @@ class AppController:
             self._submit(self._resolve_and_play, video)
         else:
             self._on_main(lambda: self.view.open_player(video, "ytplayer", None))
+
+    def _next_video(self) -> Video | None:
+        """현재 표에서 재생 중인 동영상의 바로 다음 영상. 없으면 None."""
+        with self._lock:
+            ids = [video.id for video in self.videos]
+            if self._now_playing_id not in ids:
+                return None
+            position = ids.index(self._now_playing_id) + 1
+            return self.videos[position] if position < len(self.videos) else None
+
+    def toggle_repeat(self) -> None:
+        self.repeat_one = not self.repeat_one
+        self.announce(f"연속 반복을 {'켰습니다' if self.repeat_one else '껐습니다'}.")
+        self._refresh_player_flags()
+
+    def toggle_auto_next(self) -> None:
+        if not self.auto_next and self._now_playing_id is None:
+            self.announce("다음 영상 자동 재생은 재생목록에서 동영상을 재생한 뒤에 켤 수 있습니다.", "high")
+            return
+        self.auto_next = not self.auto_next
+        self.announce(f"다음 영상 자동 재생을 {'켰습니다' if self.auto_next else '껐습니다'}.")
+        self._refresh_player_flags()
+
+    def _refresh_player_flags(self) -> None:
+        if self.player_state.title:
+            self.set_player_state(self.player_state)
 
     def _resolve_and_play(self, video: Video) -> None:
         try:
@@ -380,6 +416,8 @@ class AppController:
             "cmd:1": lambda: self.set_sort("latest"),
             "cmd:2": lambda: self.set_sort("relevance"),
             "cmd:m": self.player_mute,
+            "cmd:t": self.toggle_repeat,
+            "cmd:n": self.toggle_auto_next,
         }
         fn = handlers.get(action.lower())
         if fn:
@@ -447,18 +485,36 @@ class AppController:
     def set_player_state(self, state: PlayerState) -> None:
         self.player_state = state
         title = state.title or "재생 중"
+        flags = []
+        if self.repeat_one:
+            flags.append("연속 반복 켜짐")
+        if self.auto_next:
+            flags.append("자동 다음 켜짐")
+        suffix = "".join(f" · {flag}" for flag in flags)
         if state.duration > 0:
             detail = (f"{title} · {formatting.format_clock(state.current_time)} / "
-                      f"{formatting.format_clock(state.duration)} · 볼륨 {int(state.volume)}퍼센트")
+                      f"{formatting.format_clock(state.duration)} · 볼륨 {int(state.volume)}퍼센트{suffix}")
         else:
-            detail = f"{title} · 재생 준비 중 · 볼륨 {int(state.volume)}퍼센트"
+            detail = f"{title} · 재생 준비 중 · 볼륨 {int(state.volume)}퍼센트{suffix}"
         self.view.set_player_status(detail)
 
     def player_event(self, name: str, detail: str = "") -> None:
         if name == "playing":
             self.announce("재생을 시작했습니다. Esc 키를 누르면 표로 돌아갑니다.")
         elif name == "ended":
-            self.announce("동영상 재생이 끝났습니다. Esc 키를 누르면 표로 돌아갑니다.")
+            if self.repeat_one and self._now_playing_id is not None:
+                self.view.player_restart()
+                self.announce("연속 반복: 같은 동영상을 다시 재생합니다.")
+            elif self.auto_next:
+                following = self._next_video()
+                if following is not None:
+                    self._now_playing_id = following.id
+                    self.announce(f"다음 영상을 재생합니다. {following.title}")
+                    self._start_video(following)
+                else:
+                    self.announce("재생목록의 마지막 영상입니다. 동영상 재생이 끝났습니다.", "high")
+            else:
+                self.announce("동영상 재생이 끝났습니다. Esc 키를 누르면 표로 돌아갑니다.")
         elif name == "autoplay_blocked":
             self.announce("자동 재생이 막혔습니다. 스페이스바를 눌러 재생하세요.", "high")
         elif name == "error":

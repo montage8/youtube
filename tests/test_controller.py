@@ -158,3 +158,62 @@ def test_row_spoken_contains_position_and_title() -> None:
     assert "1번" in spoken
     assert view.rows[0].title in spoken
     assert "재생합니다" in spoken
+
+
+def test_repeat_toggle_restarts_same_video_on_end() -> None:
+    controller, view = _make_app()
+    controller.start()
+    controller.play(0)
+    controller.handle_command("cmd:t")
+    assert controller.repeat_one
+    controller.player_event("ended")
+    assert ("restart", None) in view.player_calls
+    assert len(view.player_opened) == 1  # 새 영상을 열지 않고 같은 영상을 다시 재생
+
+    controller.handle_command("cmd:t")
+    assert not controller.repeat_one
+
+
+def test_auto_next_plays_row_below_when_ended() -> None:
+    controller, view = _make_app()
+    controller.start()
+    controller.play(3)
+    controller.handle_command("cmd:n")
+    assert controller.auto_next
+    controller.player_event("ended")
+    assert len(view.player_opened) == 2
+    assert view.player_opened[-1][0] == view.rows[4].id
+
+    controller.handle_command("cmd:n")
+    assert not controller.auto_next
+    controller.player_event("ended")
+    assert len(view.player_opened) == 2  # 꺼진 뒤에는 다음 영상을 열지 않음
+
+
+def test_auto_next_refused_when_not_played_from_list() -> None:
+    controller, view = _make_app()
+    controller.start()
+    controller.handle_command("cmd:n")
+    assert not controller.auto_next
+    assert view.announcements[-1].startswith("다음 영상 자동 재생은")
+
+
+def test_repeat_takes_priority_over_auto_next() -> None:
+    controller, view = _make_app()
+    controller.start()
+    controller.play(0)
+    controller.handle_command("cmd:t")
+    controller.handle_command("cmd:n")
+    controller.player_event("ended")
+    assert ("restart", None) in view.player_calls
+    assert len(view.player_opened) == 1
+
+
+def test_auto_next_stops_at_last_row() -> None:
+    controller, view = _make_app(total=3)
+    controller.start()
+    controller.play(2)
+    controller.handle_command("cmd:n")
+    controller.player_event("ended")
+    assert len(view.player_opened) == 1
+    assert "마지막 영상" in view.announcements[-1]
