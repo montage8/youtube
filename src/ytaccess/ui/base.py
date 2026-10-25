@@ -16,7 +16,21 @@ KEY_ESCAPE = 53
 KEY_RETURN = 36
 KEY_KEYPAD_ENTER = 76
 KEY_SPACE = 49
-KEY_ARROWS = {123: "left", 124: "right", 125: "down", 126: "up"}
+# 재생 창 전용 키 (물리 키 위치 기준이라 한글 입력 상태에서도 동작)
+KEY_D = 2            # 볼륨 내리기
+KEY_S = 1            # 재생 속도 느리게
+KEY_F = 3            # 재생 속도 빠르게
+KEY_U = 32           # 볼륨 올리기
+KEY_APOSTROPHE = 39  # 5초 앞으로
+KEY_SEMICOLON = 41   # 5초 뒤로
+PLAYER_LETTER_ACTIONS = {
+    KEY_D: "volume_down",
+    KEY_U: "volume_up",
+    KEY_S: "speed_down",
+    KEY_F: "speed_up",
+    KEY_APOSTROPHE: "seek_forward",
+    KEY_SEMICOLON: "seek_back",
+}
 KEY_KEYPAD_DIGITS = {
     82: "0", 83: "1", 84: "2", 85: "3", 86: "4",
     87: "5", 88: "6", 89: "7", 91: "8", 92: "9",
@@ -32,8 +46,8 @@ def normalize_key_action(chars: str = "", keycode: int | None = None, command: b
         return "digit:" + KEY_KEYPAD_DIGITS[keycode]
     if command and chars:
         return "cmd:" + chars.lower()
-    if keycode in KEY_ARROWS:
-        return KEY_ARROWS[keycode]
+    if keycode in PLAYER_LETTER_ACTIONS:
+        return PLAYER_LETTER_ACTIONS[keycode]
     if keycode in (KEY_RETURN, KEY_KEYPAD_ENTER) or chars[:1] in ("\r", "\n", "\x03"):
         return "return"
     if keycode == KEY_SPACE or chars[:1] == " ":
@@ -66,8 +80,12 @@ Command+,  홈 검색어 변경
 
 [재생 중]
 숫자 0~9 (키패드 포함)  영상 길이의 0~90퍼센트 지점으로 이동 (0은 처음)
-왼쪽/오른쪽 화살표  5초 뒤로 / 5초 앞으로
-위/아래 화살표  볼륨 올리기 / 내리기
+; (세미콜론)  5초 뒤로
+' (아포스트로피)  5초 앞으로
+U  볼륨 올리기
+D  볼륨 내리기
+F  재생 속도 빠르게 (0.25배부터 2배까지 단계별로)
+S  재생 속도 느리게 (0.25배부터 2배까지 단계별로)
 L  현재 재생 위치를 음성으로 읽어주기
 Command+T  연속 반복 켜기 / 끄기 (켜면 영상이 끝나도 같은 영상을 다시 재생)
 Command+N  다음 영상 자동 재생 켜기 / 끄기 (재생목록에서 재생한 경우, 끝나면 바로 아래 영상 재생)
@@ -155,6 +173,9 @@ class View:
         pass
 
     def player_restart(self) -> None:
+        pass
+
+    def player_set_rate(self, rate: float) -> None:
         pass
 
 
@@ -253,3 +274,6 @@ class NullView(View):
 
     def player_restart(self) -> None:
         self.player_calls.append(("restart", None))
+
+    def player_set_rate(self, rate: float) -> None:
+        self.player_calls.append(("set_rate", rate))

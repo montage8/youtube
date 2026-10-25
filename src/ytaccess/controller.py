@@ -39,6 +39,14 @@ class InlineExecutor:
         pass
 
 
+# YouTube 플레이어가 지원하는 재생 속도 단계 (0배는 재생이 멈추므로 제외)
+PLAYBACK_RATES = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]
+
+
+def _rate_label(rate: float) -> str:
+    return f"{rate:g}"
+
+
 class AppController:
     def __init__(
         self,
@@ -73,6 +81,8 @@ class AppController:
         self.auto_next = False
         # 표(재생목록)에서 재생 중인 동영상 id. None이면 목록에서 재생한 것이 아님.
         self._now_playing_id: str | None = None
+        # 재생 속도: YouTube가 지원하는 단계 중에서 고릅니다 (0배는 재생이 멈추므로 최저 0.25배).
+        self.playback_rate = 1.0
 
     # ------------------------------------------------------------------ 유틸
     @property
@@ -287,6 +297,7 @@ class AppController:
 
     def _start_video(self, video: Video) -> None:
         engine = self.config.player_engine
+        self.playback_rate = 1.0  # 새 영상은 항상 보통 속도(1배)로 시작
         self.player_state = PlayerState(title=video.title, engine=engine, playback="loading")
         self.announce(f"{video.title} 재생을 준비합니다.")
         if engine == "adfree":
@@ -317,8 +328,7 @@ class AppController:
         self._refresh_player_flags()
 
     def _refresh_player_flags(self) -> None:
-        if self.player_state.title:
-            self.set_player_state(self.player_state)
+        self.set_player_state(self.player_state)
 
     def _resolve_and_play(self, video: Video) -> None:
         try:
@@ -426,7 +436,7 @@ class AppController:
         return False
 
     def handle_player_key(self, action: str) -> bool:
-        """재생 창에서 눌린 키 처리. 숫자/화살표/L/Esc 등."""
+        """재생 창에서 눌린 키 처리. 숫자/문자(U D S F ; ')/L/Esc 등."""
         if not action:
             return False
         state = self.view.player_state()
@@ -452,18 +462,20 @@ class AppController:
             else:
                 self.announce(f"{percent}퍼센트 지점으로 이동합니다.")
             return True
-        if action in ("left", "right"):
-            delta = -self.config.seek_step if action == "left" else self.config.seek_step
+        if action in ("seek_back", "seek_forward"):
+            delta = -self.config.seek_step if action == "seek_back" else self.config.seek_step
             self.view.player_seek_relative(delta)
             target = max(0.0, min(state.duration or 1e9, state.current_time + delta))
             self.announce(f"{self.config.seek_step}초 {'뒤로' if delta < 0 else '앞으로'} 이동. 현재 {formatting.format_spoken_time(target)}.")
             return True
-        if action in ("up", "down"):
-            delta = self.config.volume_step if action == "up" else -self.config.volume_step
+        if action in ("volume_up", "volume_down"):
+            delta = self.config.volume_step if action == "volume_up" else -self.config.volume_step
             self.view.player_change_volume(delta)
             volume = min(100.0, max(0.0, state.volume + delta))
             self.announce(f"볼륨 {int(volume)}퍼센트.")
             return True
+        if action in ("speed_up", "speed_down"):
+            return self.step_playback_rate(1 if action == "speed_up" else -1)
         if action == "time":
             self.announce(formatting.format_position(state.current_time, state.duration), "high")
             return True
@@ -481,6 +493,22 @@ class AppController:
         self.view.player_mute()
         self.announce("음소거를 켜거나 끕니다.")
 
+    def step_playback_rate(self, direction: int) -> bool:
+        """재생 속도를 한 단계 올리거나(1) 내립니다(-1). 끝에 닿으면 알려 줍니다."""
+        position = PLAYBACK_RATES.index(self.playback_rate)
+        target = position + direction
+        if target < 0:
+            self.announce(f"재생 속도가 가장 느립니다. {_rate_label(PLAYBACK_RATES[0])}배입니다.", "high")
+            return True
+        if target >= len(PLAYBACK_RATES):
+            self.announce(f"재생 속도가 가장 빠릅니다. {_rate_label(PLAYBACK_RATES[-1])}배입니다.", "high")
+            return True
+        self.playback_rate = PLAYBACK_RATES[target]
+        self.view.player_set_rate(self.playback_rate)
+        self.announce(f"재생 속도 {_rate_label(self.playback_rate)}배.")
+        self._refresh_player_flags()
+        return True
+
     # ------------------------------------------------------------------ 플레이어 상태
     def set_player_state(self, state: PlayerState) -> None:
         self.player_state = state
@@ -490,6 +518,8 @@ class AppController:
             flags.append("연속 반복 켜짐")
         if self.auto_next:
             flags.append("자동 다음 켜짐")
+        if self.playback_rate != 1.0:
+            flags.append(f"속도 {_rate_label(self.playback_rate)}배")
         suffix = "".join(f" · {flag}" for flag in flags)
         if state.duration > 0:
             detail = (f"{title} · {formatting.format_clock(state.current_time)} / "

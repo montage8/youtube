@@ -43,7 +43,7 @@ from .base import normalize_key_action
 RESOURCES = Path(__file__).resolve().parent.parent / "resources"
 _PLAYER_HINT = (
     "동영상 재생 창. 숫자 0부터 9는 영상 길이의 0부터 90퍼센트 지점으로 이동, "
-    "왼쪽 오른쪽 화살표는 5초 이동, 위 아래 화살표는 볼륨 조절, "
+    "세미콜론은 5초 뒤로, 아포스트로피는 5초 앞으로, U와 D는 볼륨, F와 S는 재생 속도, "
     "L은 현재 위치 읽기, 스페이스바는 재생과 일시정지, Esc는 닫기입니다."
 )
 
@@ -308,6 +308,7 @@ class CocoaPlayerWindow:
             js = f"window.YTACCESS.startYTPlayer({json.dumps(video.id)}, {title});"
         self.eval_js(js)
         self.eval_js(f"window.YTACCESS.setVolume({int(self.config.start_volume)});")
+        self.eval_js(f"window.YTACCESS.setRate({float(self.controller.playback_rate):.2f});")
         self._pending = None
 
     def on_state(self, state: PlayerState) -> None:
@@ -389,6 +390,9 @@ class CocoaPlayerWindow:
 
     def player_restart(self) -> None:
         self.eval_js("window.YTACCESS.restart();")
+
+    def player_set_rate(self, rate: float) -> None:
+        self.eval_js(f"window.YTACCESS.setRate({float(rate):.2f});")
 
     def player_close(self) -> None:
         self.close()
