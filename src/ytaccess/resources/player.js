@@ -25,6 +25,7 @@
   var title = '';
   var volume = 100;
   var muted = false;
+  var rate = 1;              // 재생 속도 (0.25 ~ 2배)
   var playback = 'idle';
   var lastError = '';
   var autoplayTimer = null;
@@ -127,6 +128,7 @@
     engine = 'ytplayer';
     title = videoTitle || '';
     lastError = '';
+    rate = 1;
     show('ytplayer');
     // yt-player가 이전 재생에서 #player를 iframe으로 교체했으므로 다시 만듭니다.
     playerHost.innerHTML = '<div id="player"></div>';
@@ -153,7 +155,7 @@
       timeupdateFrequency: 500
     });
 
-    yt.on('playing', function () { setState('playing'); post('event', { name: 'playing' }); });
+    yt.on('playing', function () { applyRate(); setState('playing'); post('event', { name: 'playing' }); });
     yt.on('paused', function () { setState('paused'); });
     yt.on('buffering', function () { setState('buffering'); });
     yt.on('ended', function () { setState('ended'); post('event', { name: 'ended' }); });
@@ -179,6 +181,7 @@
     engine = 'native';
     title = videoTitle || '';
     lastError = '';
+    rate = 1;
     show('native');
     setState('loading');
 
@@ -188,7 +191,7 @@
     native.autoplay = true;
     native.playsInline = true;
 
-    native.onplaying = function () { setState('playing'); post('event', { name: 'playing' }); };
+    native.onplaying = function () { native.playbackRate = rate; setState('playing'); post('event', { name: 'playing' }); };
     native.onpause = function () { if (playback !== 'ended') setState('paused'); };
     native.onwaiting = function () { setState('buffering'); };
     native.onended = function () { setState('ended'); post('event', { name: 'ended' }); };
@@ -235,12 +238,16 @@
   function changeVolume(delta) { setVolume(volume + (Number(delta) || 0)); }
 
   // 재생 속도 (0.25 ~ 2배). 0배는 재생이 멈추므로 허용하지 않습니다.
+  function applyRate() {
+    if (engine === 'ytplayer' && yt) yt.setPlaybackRate(rate);
+    else if (engine === 'native') native.playbackRate = rate;
+  }
+
   function setRate(value) {
     var r = Number(value);
     if (!isFinite(r) || r <= 0) r = 1;
     rate = Math.max(0.25, Math.min(2, r));
-    if (engine === 'ytplayer' && yt) yt.setPlaybackRate(rate);
-    if (engine === 'native') native.playbackRate = rate;
+    applyRate();
     emitState();
   }
 
